@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>Parisa – call</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<section id="lobby">
+  <h1>Parisa</h1>
+  <p class="sub">Two-person call built for weak, filtered connections.</p>
+  <label for="room">Room code</label>
+  <input id="room" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. k7x2p9">
+  <button id="join" class="primary">Join call</button>
+  <p id="lobbyMsg" class="msg"></p>
+  <p class="hint">Share the same room code (or the page link) with the other person. Only two people fit in a room.</p>
+</section>
+
+<section id="call" hidden>
+  <video id="remote" autoplay playsinline></video>
+  <video id="local" autoplay playsinline muted></video>
+  <div id="status"></div>
+
+  <div id="hud">
+    <div class="row">
+      <div class="q"><span class="lbl">You → them</span><span class="bars" id="barsUp"><i></i><i></i><i></i><i></i></span><span class="val" id="valUp">–</span></div>
+      <div class="q"><span class="lbl">Them → you</span><span class="bars" id="barsDown"><i></i><i></i><i></i><i></i></span><span class="val" id="valDown">–</span></div>
+    </div>
+    <div class="row">
+      <div class="meter"><span class="lbl">They hear you</span><div class="track"><div id="hearFill"></div></div></div>
+      <div class="meter"><span class="lbl">Your mic</span><div class="track"><div id="micFill"></div></div></div>
+    </div>
+    <div id="cue" class="cue idle">…</div>
+    <div id="info"></div>
+  </div>
+
+  <div id="controls">
+    <button id="btnMic" aria-label="Mute">🎤</button>
+    <button id="btnCam" aria-label="Camera">📷</button>
+    <button id="btnFlip" aria-label="Flip camera">🔄</button>
+    <button id="btnBoost" aria-label="Boost incoming voice" title="Level incoming voice">🔊</button>
+    <button id="btnHang" class="danger" aria-label="Hang up">✖</button>
+  </div>
+</section>
+<script src="app.js"></script>
+</body>
+</html>
