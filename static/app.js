@@ -45,10 +45,10 @@ async function api(path, body, timeout = 10000) {
     return { status: r.status, data: await r.json() };
   } finally { clearTimeout(t); }
 }
-const sendSignal = data => api('/api/send', { epoch: S.epoch, data }).catch(() => {});
+const sendSignal = data => api('api/send', { epoch: S.epoch, data }).catch(() => {});
 
 async function joinRoom() {
-  const r = await api('/api/join', {});
+  const r = await api('api/join', {});
   if (r.status === 409) throw new Error('Room is full (2 people max).');
   if (r.status !== 200) throw new Error('Cannot join.');
   S.role = r.data.role; S.polite = S.role === 'b'; S.epoch = r.data.epoch; S.seq = 0;
@@ -59,7 +59,8 @@ async function pollLoop() {
   let backoff = 500;
   while (S.running) {
     try {
-      const r = await api(`/api/poll?room=${encodeURIComponent(S.room)}&cid=${S.cid}&after=${S.seq}`, null, 35000);
+      const t0 = Date.now();
+      const r = await api(`api/poll?room=${encodeURIComponent(S.room)}&cid=${S.cid}&after=${S.seq}`, null, 35000);
       if (r.status === 410) { await joinRoom(); newSession(); continue; }
       backoff = 500;
       const d = r.data;
@@ -73,6 +74,8 @@ async function pollLoop() {
       }
       if (d.epoch !== S.epoch && d.peer) { S.epoch = d.epoch; newSession(); }
       else if (d.peer && !S.pc) newSession();
+      // server may answer immediately (short-polling mode on shared hosting): don't hammer it
+      if (!d.msgs.length && Date.now() - t0 < 400) await new Promise(r => setTimeout(r, 700));
     } catch (e) {
       await new Promise(r => setTimeout(r, backoff));
       backoff = Math.min(backoff * 2, 4000);
@@ -116,7 +119,7 @@ function rms(an) {
 
 /* ---------- peer connection ---------- */
 async function iceServers() {
-  try { return (await api('/api/ice')).data.iceServers; } catch { return [{ urls: 'stun:stun.l.google.com:19302' }]; }
+  try { return (await api('api/ice')).data.iceServers; } catch { return [{ urls: 'stun:stun.l.google.com:19302' }]; }
 }
 
 function closePc() {
@@ -232,7 +235,7 @@ setInterval(async () => {   // escalate: ICE restart didn't recover -> rebuild b
   if (!S.running || !S.pc || !S.disconnectedAt) return;
   if (Date.now() - S.disconnectedAt > 20000) {
     S.disconnectedAt = Date.now();
-    try { const r = await api('/api/reset', {}); if (r.data.ok) { S.epoch = r.data.epoch; newSession(); } } catch {}
+    try { const r = await api('api/reset', {}); if (r.data.ok) { S.epoch = r.data.epoch; newSession(); } } catch {}
   }
 }, 3000);
 window.addEventListener('online', () => { if (S.pc && S.pc.connectionState !== 'connected') S.pc.restartIce(); });
@@ -449,7 +452,7 @@ async function start() {
 
 function hangup() {
   S.running = false;
-  api('/api/leave', {}).catch(() => {});
+  api('api/leave', {}).catch(() => {});
   closePc();
   [S.mic, S.cam].forEach(s => s && s.getTracks().forEach(t => t.stop()));
   if (S.ctx) S.ctx.close().catch(() => {});
@@ -484,7 +487,7 @@ $('btnFlip').onclick = async () => {
   } catch (e) { console.warn(e); }
 };
 $('btnBoost').onclick = () => { S.boost = !S.boost; applyBoost(); };
-window.addEventListener('beforeunload', () => { if (S.running) navigator.sendBeacon && navigator.sendBeacon('/api/leave', new Blob([JSON.stringify({ room: S.room, cid: S.cid })], { type: 'application/json' })); });
+window.addEventListener('beforeunload', () => { if (S.running) navigator.sendBeacon && navigator.sendBeacon('api/leave', new Blob([JSON.stringify({ room: S.room, cid: S.cid })], { type: 'application/json' })); });
 
 if (location.hash.length > 1) $('room').value = decodeURIComponent(location.hash.slice(1));
 else $('room').value = Math.random().toString(36).slice(2, 8);

@@ -5,13 +5,24 @@ Plain HTML/JS client + a ~200-line standard-library Python server.
 
 ## Run
 
+**Standalone** (needs only Python 3.5+):
 ```bash
-python3 server.py --port 8080                      # http (localhost only works for mic/camera)
+python3 server.py --port 8080                                          # http (mic/camera only work on localhost)
 python3 server.py --port 443 --cert fullchain.pem --key privkey.pem   # https
 ```
-Browsers only allow mic/camera on **https** (or localhost), so put it behind TLS
-(built-in `--cert/--key`, or Caddy/nginx). Open the page on both phones, use the
-same room code (the link `https://host/#room` carries it). A third person gets "room full".
+
+**On shared hosting / WSGI (cPanel "Setup Python App", Passenger, gunicorn, mod_wsgi):**
+the app is `server.application` (`passenger_wsgi.py` re-exports it). State is kept in SQLite
+(`parisa.sqlite` next to the code, override with `PARISA_DB`), so multiple worker processes are fine.
+
+cPanel steps: *Setup Python App* → pick Python 3.8+ → application root = the folder with these files →
+application URL = e.g. `parisa` (or a whole domain) → startup file `passenger_wsgi.py`, entry point `application` →
+Create. The host provides https (AutoSSL). Open `https://yourdomain/parisa/`.
+If the host kills long requests, set env `PARISA_POLL_WAIT=0` (plain short-polling, a bit more traffic).
+Shared hosting cannot run a TURN relay, see below.
+
+Browsers only allow mic/camera on **https** (or localhost). Use the same room code on both phones
+(`https://host/parisa/#room` carries it). A third person gets "room full".
 
 ## What it does
 
